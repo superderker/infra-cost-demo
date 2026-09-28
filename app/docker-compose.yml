@@ -1,0 +1,6 @@
+# Local stand-in for the EC2 instance: docker compose up -> http://localhost:8080
+services:
+  web:
+    image: nginx:alpine
+    ports: ["8080:80"]
+    volumes: ["./index.html:/usr/share/nginx/html/index.html:ro"]

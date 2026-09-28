@@ -1,0 +1,64 @@
+name: Infracost cost gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  MAX_INCREASE_USD: 50
+
+jobs:
+  cost-check:
+    name: cost-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hashicorp/setup-terraform@v3
+
+      - uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      # 1. Baseline cost from the target branch
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Baseline cost
+        run: infracost breakdown --path=. --format=json --out-file=/tmp/base.json
+
+      # 2. PR code
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      # 3. Technical checks (offline, mock credentials, nothing is deployed)
+      - name: Terraform init, validate, plan
+        run: |
+          terraform init -backend=false
+          terraform validate
+          terraform plan -input=false
+
+      # 4. Cost diff vs baseline
+      - name: Cost diff
+        run: |
+          infracost diff --path=. \
+            --compare-to=/tmp/base.json \
+            --format=json --out-file=/tmp/diff.json
+
+      - name: Post PR comment
+        run: |
+          infracost comment github --path=/tmp/diff.json \
+            --repo=$GITHUB_REPOSITORY \
+            --github-token=${{ github.token }} \
+            --pull-request=${{ github.event.pull_request.number }} \
+            --behavior=update
+
+      # 5. Gate
+      - name: Cost gate
+        env:
+          COST_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'cost-approved') }}
+        run: ./scripts/cost-gate.sh /tmp/diff.json "$MAX_INCREASE_USD"
