@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Usage: cost-gate.sh <base.json> <pr.json> [max_increase_usd]
-# Inputs are the output of `infracost inspect --json` after a scan of each version.
+# Inputs: `infracost inspect --json` output (v2 CLI, field .monthly_cost) or
+# `infracost breakdown --format json` output (legacy CLI in CI, field .totalMonthlyCost).
 # Env:   COST_APPROVED=true -> report the overrun but do not block (label override)
 set -euo pipefail
 
@@ -10,8 +11,8 @@ MAX="${3:-50}"
 APPROVED="${COST_APPROVED:-false}"
 
 # monthly_cost is a string like "8.5528"; fail closed if missing
-past=$(jq -er '.monthly_cost | tonumber' "$BASE_JSON") || { echo "❌ Could not read baseline cost"; exit 1; }
-new=$(jq -er '.monthly_cost | tonumber' "$PR_JSON")     || { echo "❌ Could not read proposed cost"; exit 1; }
+past=$(jq -er '(.monthly_cost // .totalMonthlyCost) | tonumber' "$BASE_JSON") || { echo "❌ Could not read baseline cost"; exit 1; }
+new=$(jq -er '(.monthly_cost // .totalMonthlyCost) | tonumber' "$PR_JSON")     || { echo "❌ Could not read proposed cost"; exit 1; }
 errors=$(jq -r '(.critical_diagnostics // 0) + (.projects_with_errors // 0)' "$PR_JSON")
 
 if [ "$errors" != "0" ]; then
