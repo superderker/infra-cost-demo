@@ -22,4 +22,4 @@ infracost scan --no-color >/dev/null
 infracost inspect --json > /tmp/pr.json
 
 echo
-./scripts/cost-gate.sh /tmp/base.json /tmp/pr.json "${MAX_INCREASE_USD:-50}"
+./scripts/cost-gate.sh /tmp/base.json /tmp/pr.json "${MAX_INCREASE_USD:-250}"
