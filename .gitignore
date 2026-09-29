@@ -2,3 +2,4 @@
 *.tfstate*
 tfplan
 plan.json
+.DS_Store
