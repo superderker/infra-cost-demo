@@ -1,0 +1,57 @@
+name: Cost gate
+
+# Blocks PRs whose estimated monthly cost increase exceeds MAX_INCREASE_USD.
+# The PR comment itself comes from the generated infracost-diff.yml workflow.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+env:
+  MAX_INCREASE_USD: 50
+
+jobs:
+  cost-check:
+    name: cost-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR (head)
+        uses: actions/checkout@v4
+        with:
+          path: head
+
+      - name: Checkout target branch (base)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          path: base
+
+      # Technical checks: offline, mock credentials, nothing is deployed
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform init, validate, plan
+        working-directory: head
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+          terraform plan -input=false
+
+      # Cost estimates (legacy CLI: breakdown --format json)
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Estimate base cost
+        run: infracost breakdown --path=base --format=json --out-file=/tmp/base.json
+
+      - name: Estimate PR cost
+        run: infracost breakdown --path=head --format=json --out-file=/tmp/pr.json
+
+      # Gate. Uses the script from the BASE branch so a PR cannot weaken its own check.
+      - name: Cost gate
+        env:
+          COST_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'cost-approved') }}
+        run: ./base/scripts/cost-gate.sh /tmp/base.json /tmp/pr.json "$MAX_INCREASE_USD"
