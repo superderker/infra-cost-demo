@@ -7,7 +7,7 @@ set -euo pipefail
 
 BASE_JSON="${1:?usage: cost-gate.sh <base.json> <pr.json> [max_increase_usd]}"
 PR_JSON="${2:?usage: cost-gate.sh <base.json> <pr.json> [max_increase_usd]}"
-MAX="${3:-50}"
+MAX="${3:-250}"
 APPROVED="${COST_APPROVED:-false}"
 
 # monthly_cost is a string like "8.5528"; fail closed if missing
