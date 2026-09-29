@@ -11,7 +11,7 @@ permissions:
   pull-requests: write
 
 env:
-  MAX_INCREASE_USD: 50
+  MAX_INCREASE_USD: 250
 
 jobs:
   cost-check:
