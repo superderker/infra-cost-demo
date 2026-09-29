@@ -2,7 +2,7 @@ name: Infracost Scan
 
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 permissions:
   contents: read
@@ -17,5 +17,5 @@ jobs:
       - name: Run Infracost Scan
         uses: infracost/actions/scan@c2e668fda0716ccc96353c6e6438c4a20448821a
         with:
-          api-key: ${{ secrets.INFRACOST_API_KEY }}
+          api-key: ${{ secrets.INFRACOST_CLI_TOKEN }}
           path: .

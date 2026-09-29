@@ -52,7 +52,7 @@ jobs:
       - name: Run Infracost Diff
         uses: infracost/actions/diff@c2e668fda0716ccc96353c6e6438c4a20448821a
         with:
-          api-key: ${{ secrets.INFRACOST_API_KEY }}
+          api-key: ${{ secrets.INFRACOST_CLI_TOKEN }}
           base-path: ${{ github.event.action != 'closed' && 'base' || '' }}
           head-path: ${{ github.event.action != 'closed' && 'head' || '' }}
           pr-number: ${{ steps.pr.outputs.pr-number }}
