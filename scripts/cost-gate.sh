@@ -1,24 +1,29 @@
 #!/usr/bin/env bash
-# Usage: cost-gate.sh <infracost-diff.json> [max_increase_usd]
-# Env:   COST_APPROVED=true  -> report but do not block (label override)
+# Usage: cost-gate.sh <base.json> <pr.json> [max_increase_usd]
+# Inputs are the output of `infracost inspect --json` after a scan of each version.
+# Env:   COST_APPROVED=true -> report the overrun but do not block (label override)
 set -euo pipefail
 
-DIFF_JSON="${1:?usage: cost-gate.sh <diff.json> [max_increase_usd]}"
-MAX="${2:-50}"
+BASE_JSON="${1:?usage: cost-gate.sh <base.json> <pr.json> [max_increase_usd]}"
+PR_JSON="${2:?usage: cost-gate.sh <base.json> <pr.json> [max_increase_usd]}"
+MAX="${3:-50}"
 APPROVED="${COST_APPROVED:-false}"
 
-past=$(jq -r '.pastTotalMonthlyCost // "0"' "$DIFF_JSON")
-new=$(jq -r '.totalMonthlyCost // "0"' "$DIFF_JSON")
-delta=$(jq -r '.diffTotalMonthlyCost // "0"' "$DIFF_JSON")
-unsupported=$(jq -r '.summary.totalUnsupportedResources // 0' "$DIFF_JSON")
+# monthly_cost is a string like "8.5528"; fail closed if missing
+past=$(jq -er '.monthly_cost | tonumber' "$BASE_JSON") || { echo "❌ Could not read baseline cost"; exit 1; }
+new=$(jq -er '.monthly_cost | tonumber' "$PR_JSON")     || { echo "❌ Could not read proposed cost"; exit 1; }
+errors=$(jq -r '(.critical_diagnostics // 0) + (.projects_with_errors // 0)' "$PR_JSON")
+
+if [ "$errors" != "0" ]; then
+  echo "❌ Scan reported errors; cost estimate is not trustworthy. Blocking."
+  exit 1
+fi
+
+delta=$(awk -v a="$past" -v b="$new" 'BEGIN { printf "%.2f", b - a }')
 
 printf "Current : \$%.2f / month\n" "$past"
 printf "Proposed: \$%.2f / month\n" "$new"
-printf "Increase: \$%.2f / month (limit \$%s)\n" "$delta" "$MAX"
-
-if [ "$unsupported" != "0" ]; then
-  echo "⚠️  $unsupported resource(s) could not be priced; estimate may be incomplete."
-fi
+printf "Increase: \$%s / month (limit \$%s)\n" "$delta" "$MAX"
 
 if awk -v d="$delta" -v m="$MAX" 'BEGIN { exit !(d > m) }'; then
   if [ "$APPROVED" = "true" ]; then

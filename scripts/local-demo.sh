@@ -1,17 +1,25 @@
 #!/usr/bin/env bash
-# Run the same checks locally against a scenario, e.g.:
-#   ./scripts/local-demo.sh              # baseline (terraform.tfvars)
+# Simulate a PR locally: baseline = current terraform.tfvars, proposal = a scenario.
 #   ./scripts/local-demo.sh excessive
 #   ./scripts/local-demo.sh reasonable
+# terraform.tfvars is restored afterwards.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-VARFILE=()
-if [ "${1:-}" != "" ]; then VARFILE=(--terraform-var-file "scenarios/$1.tfvars"); fi
+SCENARIO="${1:?usage: local-demo.sh <excessive|reasonable>}"
+[ -f "scenarios/$SCENARIO.tfvars" ] || { echo "No such scenario: $SCENARIO"; exit 1; }
 
-# Baseline from terraform.tfvars, proposed from scenario
-infracost breakdown --path . --format json --out-file /tmp/base.json --no-color >/dev/null
-infracost diff --path . "${VARFILE[@]}" --compare-to /tmp/base.json \
-  --format json --out-file /tmp/diff.json >/dev/null
-infracost diff --path . "${VARFILE[@]}" --compare-to /tmp/base.json --no-color || true
-./scripts/cost-gate.sh /tmp/diff.json "${MAX_INCREASE_USD:-50}"
+cp terraform.tfvars /tmp/terraform.tfvars.orig
+trap 'cp /tmp/terraform.tfvars.orig terraform.tfvars' EXIT
+
+echo "== Baseline =="
+infracost scan --no-color >/dev/null
+infracost inspect --json > /tmp/base.json
+
+echo "== Proposed ($SCENARIO) =="
+cp "scenarios/$SCENARIO.tfvars" terraform.tfvars
+infracost scan --no-color >/dev/null
+infracost inspect --json > /tmp/pr.json
+
+echo
+./scripts/cost-gate.sh /tmp/base.json /tmp/pr.json "${MAX_INCREASE_USD:-50}"
