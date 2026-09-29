@@ -1,7 +1,7 @@
 # Cost-aware infrastructure changes with Infracost
 
 Terraform (AWS, never deployed) + Infracost + GitHub Actions. A PR that raises the
-estimated monthly cost by more than `MAX_INCREASE_USD` (default $50) fails the
+estimated monthly cost by more than `MAX_INCREASE_USD` (default $250) fails the
 `cost-check` job and cannot be merged.
 
 Nothing is deployed and no AWS account is needed: the provider uses mock credentials
