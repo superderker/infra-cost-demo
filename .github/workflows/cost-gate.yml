@@ -1,7 +1,4 @@
 name: Cost gate
-
-# Blocks PRs whose estimated monthly cost increase exceeds MAX_INCREASE_USD,
-# and posts the cost diff as a PR comment.
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
