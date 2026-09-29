@@ -25,9 +25,9 @@ and Infracost prices resources from its own pricing API.
 
 ## Demo flow
 1. `main`: show `main.tf`, `terraform plan`, and the Infracost breakdown.
-2. Branch `excessive`: copy `scenarios/excessive.tfvars` over `terraform.tfvars`,
+2. Branch `excessive`: copy `scenarios/excessive.tfvars.example` over `terraform.tfvars`,
    open a PR. Plan passes, Infracost comment shows the jump, gate fails, merge blocked.
-3. Push a commit copying `scenarios/reasonable.tfvars` over `terraform.tfvars`.
+3. Push a commit copying `scenarios/reasonable.tfvars.example` over `terraform.tfvars`.
    Comment updates, gate passes.
 4. Discuss limits: usage-based pricing, list prices vs bill,
    false positives (label override), unsupported resources, API outage (fails closed).

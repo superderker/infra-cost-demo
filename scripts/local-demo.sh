@@ -7,7 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 SCENARIO="${1:?usage: local-demo.sh <excessive|reasonable>}"
-[ -f "scenarios/$SCENARIO.tfvars" ] || { echo "No such scenario: $SCENARIO"; exit 1; }
+[ -f "scenarios/$SCENARIO.tfvars.example" ] || { echo "No such scenario: $SCENARIO"; exit 1; }
 
 cp terraform.tfvars /tmp/terraform.tfvars.orig
 trap 'cp /tmp/terraform.tfvars.orig terraform.tfvars' EXIT
@@ -17,7 +17,7 @@ infracost scan --no-color >/dev/null
 infracost inspect --json > /tmp/base.json
 
 echo "== Proposed ($SCENARIO) =="
-cp "scenarios/$SCENARIO.tfvars" terraform.tfvars
+cp "scenarios/$SCENARIO.tfvars.example" terraform.tfvars
 infracost scan --no-color >/dev/null
 infracost inspect --json > /tmp/pr.json
 
